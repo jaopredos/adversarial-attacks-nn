@@ -1,50 +1,3 @@
-"""
-generate_dop_de.py
-==================
-Gera o dataset não-robusto D_OP v3 via One-Pixel Attack com Evolução Diferencial (DE),
-replicando a metodologia de Ilyas et al. (2019) com o algoritmo de Su et al. (2019).
-
-POR QUE ESTE SCRIPT SEPARADO E NÃO NO NOTEBOOK?
--------------------------------------------------
-O notebook Jupyter mantém todo o estado em memória. Se a conexão SSH cair, o kernel
-reiniciar por timeout (comum em sessões longas > 8h), ou a sessão for encerrada
-manualmente, TODO o progresso é perdido e seria necessário recomeçar do zero.
-
-Este script roda como processo independente no shell da máquina remota:
-  - Use nohup ou screen/tmux para persistência após desconexão SSH
-  - Checkpoints são salvos a cada CHECKPOINT_EVERY imagens em dop_de_checkpoint/
-  - Em caso de interrupção, basta rodar novamente — ele retoma do checkpoint
-
-COMO RODAR NA 4090:
-  # Opção 1: nohup (continua após desconexão SSH — mais simples)
-  nohup python generate_dop_de.py > dop_de_run.log 2>&1 &
-  tail -f dop_de_run.log   # monitorar progresso em tempo real
-
-  # Opção 2: screen (sessão persistente interativa)
-  screen -S dop_de
-  python generate_dop_de.py
-  # Ctrl+A, D para desanexar; screen -r dop_de para reconectar
-
-  # Opção 3: tmux
-  tmux new -s dop_de
-  python generate_dop_de.py
-  # Ctrl+B, D para desanexar; tmux attach -t dop_de para reconectar
-
-MONITORAR PROGRESSO SEM ABRIR O SCRIPT:
-  cat dop_de_checkpoint/meta.json              # estatísticas do último checkpoint
-  tail -20 dop_de_checkpoint/progress_log.txt  # últimas linhas do log
-
-QUANDO TERMINAR:
-  O arquivo dataset_op_de.pt estará pronto. Abra o notebook e execute
-  a Parte 5B — ela carregará o dataset automaticamente.
-
-REFERÊNCIAS:
-  Su, J. et al. (2019). One Pixel Attack for Fooling Deep Neural Networks.
-    IEEE Transactions on Evolutionary Computation. arXiv:1710.08864
-  Ilyas, A. et al. (2019). Adversarial Examples Are Not Bugs, They Are Features.
-    NeurIPS 2019. arXiv:1905.02175
-"""
-
 import os
 import sys
 import json
@@ -66,7 +19,7 @@ META_FILE        = os.path.join(CHECKPOINT_DIR, 'meta.json')
 
 CHECKPOINT_EVERY = 500   # salvar checkpoint a cada N imagens
 
-# Hiperparâmetros do DE (alinhados a Su et al., 2019)
+# Hiperparâmetros do DE 
 DE_POPSIZE      = 400    # tamanho da população inicial
 DE_MAXITER      = 400    # máximo de gerações por imagem
 DE_F            = 0.5    # fator de mutação
@@ -76,9 +29,6 @@ EARLY_STOP_CONF = 0.1    # parar cedo se confiança na classe certa < 10%
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 
-# ============================================================
-# ARQUITETURA (idêntica ao notebook)
-# ============================================================
 def build_resnet18_cifar():
     """ResNet18 adaptada para CIFAR-10 — deve ser idêntica à do notebook."""
     import torchvision.models as models
